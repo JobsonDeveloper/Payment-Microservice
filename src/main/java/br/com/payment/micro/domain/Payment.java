@@ -22,6 +22,7 @@ public class Payment {
     private String saleId;
     private String clientId;
     private Double value;
+    private Status status;
 
     @CreatedDate
     private LocalDateTime created_at;
