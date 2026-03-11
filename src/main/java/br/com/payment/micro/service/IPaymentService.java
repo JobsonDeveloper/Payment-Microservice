@@ -6,4 +6,5 @@ import br.com.payment.micro.domain.Status;
 public interface IPaymentService {
     public String getPaymentLink(Double value, String saleId);
     public Payment makePayment(Payment payment);
+    public Payment paymentCompleted(String saleId);
 }

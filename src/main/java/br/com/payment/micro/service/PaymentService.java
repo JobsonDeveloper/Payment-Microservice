@@ -2,9 +2,10 @@ package br.com.payment.micro.service;
 
 import br.com.payment.micro.domain.Payment;
 import br.com.payment.micro.domain.Status;
-import br.com.payment.micro.dto.response.SalePaymentDto;
-import br.com.payment.micro.event.dto.PendingPaymentEventDto;
-import br.com.payment.micro.event.producer.PendingPaymentEventProducer;
+import br.com.payment.micro.dto.response.GetSaleInfoDto;
+import br.com.payment.micro.event.dto.PaymentEventDto;
+import br.com.payment.micro.event.producer.PaymentEventProducer;
+import br.com.payment.micro.exception.ErrorChangingPaymentStatusException;
 import br.com.payment.micro.exception.ServiceUnavailableException;
 import br.com.payment.micro.exception.sale.ErrorRetrievingSaleInfoException;
 import br.com.payment.micro.exception.sale.SaleNotFoundException;
@@ -13,15 +14,17 @@ import feign.FeignException;
 import feign.RetryableException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 public class PaymentService implements IPaymentService {
     private final IPaymentRepository iPaymentRepository;
-    private final PendingPaymentEventProducer paymentEventProducer;
+    private final PaymentEventProducer paymentEventProducer;
     private final ISalePayment iSalePayment;
 
     public PaymentService(
             IPaymentRepository iPaymentRepository,
-            PendingPaymentEventProducer paymentEventProducer, ISalePayment iSalePayment
+            PaymentEventProducer paymentEventProducer, ISalePayment iSalePayment
     ) {
         this.iPaymentRepository = iPaymentRepository;
         this.paymentEventProducer = paymentEventProducer;
@@ -31,16 +34,16 @@ public class PaymentService implements IPaymentService {
     @Override
     public String getPaymentLink(Double value, String saleId) {
         try {
-            SalePaymentDto sale = iSalePayment.getSaleInfo(saleId);
+            GetSaleInfoDto sale = iSalePayment.getSaleInfo(saleId);
 
             // Call to mercado pago to get payment link
 
-            PendingPaymentEventDto event = new PendingPaymentEventDto(
+            PaymentEventDto event = new PaymentEventDto(
                     saleId,
                     Status.PENDING_PAYMENT
             );
 
-            paymentEventProducer.pendingPaymentEvent(event);
+            paymentEventProducer.setPaymentEvent(event);
 
             return "Link of payment";
         } catch (RetryableException e) {
@@ -55,5 +58,41 @@ public class PaymentService implements IPaymentService {
     @Override
     public Payment makePayment(Payment payment) {
         return null;
+    }
+
+    @Override
+    public Payment paymentCompleted(String saleId) {
+        try {
+            GetSaleInfoDto response = iSalePayment.getSaleInfo(saleId);
+            String clientId = response.sale().client().id();
+            Double value = response.sale().totalValue();
+
+            Payment newPayment = Payment.builder()
+                    .saleId(saleId)
+                    .clientId(clientId)
+                    .value(value)
+                    .status(Status.PAID)
+                    .created_at(LocalDateTime.now())
+                    .build();
+
+            Payment payment = iPaymentRepository.save(newPayment);
+
+            if (payment.getId() == null) {
+                throw new ErrorChangingPaymentStatusException();
+            }
+
+            paymentEventProducer.setPaymentEvent(new PaymentEventDto(
+                    saleId,
+                    Status.PAID
+            ));
+
+            return payment;
+        } catch (RetryableException e) {
+            throw new ServiceUnavailableException("Sale Microservice");
+        } catch (FeignException.NotFound e) {
+            throw new SaleNotFoundException();
+        } catch (FeignException e) {
+            throw new ErrorRetrievingSaleInfoException();
+        }
     }
 }
