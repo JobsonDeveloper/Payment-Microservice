@@ -1,5 +1,7 @@
+name: e-sale
+
 services:
-  payment-microservice:
+  payment:
     build: .
     ports:
       - "8085:8085"

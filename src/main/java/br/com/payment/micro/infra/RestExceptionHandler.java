@@ -1,5 +1,6 @@
 package br.com.payment.micro.infra;
 
+import br.com.payment.micro.exception.ErrorChangingPaymentStatusException;
 import br.com.payment.micro.exception.ErrorGettingPaymentLinkException;
 import br.com.payment.micro.exception.ServiceUnavailableException;
 import br.com.payment.micro.exception.sale.ErrorRetrievingSaleInfoException;
@@ -69,6 +70,12 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ErrorRetrievingSaleInfoException.class)
     private ResponseEntity<DefaultErrorResponse> errorRetrievingSaleInfoHandler(ErrorRetrievingSaleInfoException exception) {
+        DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(defaultErrorResponse);
+    }
+
+    @ExceptionHandler(ErrorChangingPaymentStatusException.class)
+    private ResponseEntity<DefaultErrorResponse> errorChangingPaymentStatusHandler(ErrorChangingPaymentStatusException exception) {
         DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(defaultErrorResponse);
     }
