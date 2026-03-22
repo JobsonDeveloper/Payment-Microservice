@@ -1,5 +1,6 @@
 package br.com.payment.micro.service;
 
+import br.com.payment.micro.domain.Canceled;
 import br.com.payment.micro.domain.Payment;
 import br.com.payment.micro.domain.Status;
 
