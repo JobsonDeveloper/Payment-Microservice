@@ -2,6 +2,7 @@ package br.com.payment.micro.infra;
 
 import br.com.payment.micro.exception.*;
 import br.com.payment.micro.exception.sale.ErrorRetrievingSaleInfoException;
+import br.com.payment.micro.exception.sale.InconsistentValueException;
 import br.com.payment.micro.exception.sale.SaleNotFoundException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -94,5 +95,11 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     private ResponseEntity<DefaultErrorResponse> errorCancelingPaymentHandler(ErrorCancelingPaymentException exception) {
         DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(defaultErrorResponse);
+    }
+
+    @ExceptionHandler(InconsistentValueException.class)
+    private ResponseEntity<DefaultErrorResponse> inconsistentValueHandler(InconsistentValueException exception) {
+        DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.CONFLICT, exception.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(defaultErrorResponse);
     }
 }

@@ -8,6 +8,7 @@ import br.com.payment.micro.event.producer.PaymentEventProducer;
 import br.com.payment.micro.exception.ErrorChangingPaymentStatusException;
 import br.com.payment.micro.exception.ServiceUnavailableException;
 import br.com.payment.micro.exception.sale.ErrorRetrievingSaleInfoException;
+import br.com.payment.micro.exception.sale.InconsistentValueException;
 import br.com.payment.micro.exception.sale.SaleNotFoundException;
 import br.com.payment.micro.repository.IPaymentRepository;
 import feign.FeignException;
@@ -34,7 +35,11 @@ public class PaymentService implements IPaymentService {
     @Override
     public String getPaymentLink(Double value, String saleId) {
         try {
-            GetSaleInfoDto sale = iSalePayment.getSaleInfo(saleId);
+            GetSaleInfoDto response = iSalePayment.getSaleInfo(saleId);
+
+            if (!value.equals(response.sale().totalValue())) {
+                throw new InconsistentValueException();
+            }
 
             // Call to mercado pago to get payment link
 
