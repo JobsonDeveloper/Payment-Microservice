@@ -61,6 +61,16 @@ public class PaymentController {
                             )
                     ),
                     @ApiResponse(
+                            responseCode = "409",
+                            description = "Amount to be paid is incompatible",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(
+                                            example = "{ \"status\": \"CONFLICT\", \"message\": \"The amount to be paid is inconsistent!\" }"
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
                             responseCode = "500",
                             description = "It was not possible to get sale info!",
                             content = @Content(
