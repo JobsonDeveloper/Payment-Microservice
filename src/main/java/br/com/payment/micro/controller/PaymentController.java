@@ -45,9 +45,16 @@ public class PaymentController {
                             description = "Invalid data",
                             content = @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(
-                                            example = "{ \"error\": \"Validation failed\", \"errors\": \"[...]\" }"
-                                    )
+                                    examples = {
+                                            @ExampleObject(
+                                                    name = "Invalid fields",
+                                                    value = "{ \"error\": \"Validation failed\", \"errors\": \"[...]\" }"
+                                            ),
+                                            @ExampleObject(
+                                                    name = "Data incompatible with linked database",
+                                                    value = "{ \"status\": \"BAD_REQUEST\", \"message\": \"The payment details was not provided correctly!\" }"
+                                            )
+                                    }
                             )
                     ),
                     @ApiResponse(
@@ -93,6 +100,10 @@ public class PaymentController {
                                             @ExampleObject(
                                                     name = "Error when try to get payment link!",
                                                     value = "{ \"status\": \"BAD_GATEWAY\", \"message\": \"It was not possible to get payment link!\" }"
+                                            ),
+                                            @ExampleObject(
+                                                    name = "Communication error with the payment intermediary",
+                                                    value = "{ \"status\": \"BAD_GATEWAY\", \"message\": \"We were unable to generate the payment link!\" }"
                                             )
                                     }
                             )
@@ -105,8 +116,19 @@ public class PaymentController {
     ) {
         String saleId = getPaymentLinkDto.saleId();
         Double value = getPaymentLinkDto.value();
+        String cpf = getPaymentLinkDto.client().cpf();
+        String clientFirstName = getPaymentLinkDto.client().firstName();
+        String clientLastName = getPaymentLinkDto.client().lastName();
+        String clientEmail = getPaymentLinkDto.client().email();
 
-        String paymentLink = iPaymentService.getPaymentLink(value, saleId);
+        String paymentLink = iPaymentService.getPaymentLink(
+                value,
+                saleId,
+                cpf,
+                clientFirstName,
+                clientLastName,
+                clientEmail
+        );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new PaymentLinkGeneratedDto(
                 "Payment link returned successfully!",
