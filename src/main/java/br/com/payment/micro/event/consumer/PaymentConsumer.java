@@ -52,7 +52,7 @@ public class PaymentConsumer {
                 Canceled canceled = Canceled.builder()
                         .saleId(payment.getSaleId())
                         .clientId(paymentClientId)
-                        .value(payment.getValue())
+                        .payment(payment.getPayment())
                         .status(Status.CANCELED)
                         .created_at(payment.getCreated_at())
                         .updated_at(LocalDateTime.now())
