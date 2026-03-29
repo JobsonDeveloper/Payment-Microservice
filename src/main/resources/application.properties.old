@@ -3,19 +3,13 @@ server.port=
 spring.application.zone=America/Recife
 application.currency.id=BRL
 
-# Mercado Pago
-mercado-pago.payment.back.url.success=
-mercado-pago.payment.back.url.pending=
-mercado-pago.payment.back.url.failure=
-mercado-pago.payment.notification.url=
-
 sale.micro.url=
 client.micro.url=
 
 #Database
 MONGO_HOST=
 MONGO_PORT=
-MONGO_DB=
+MONGO_DB=paymentdb
 MONGO_USER=
 MONGO_PASS=
 spring.data.mongodb.uri=mongodb://${MONGO_USER}:${MONGO_PASS}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}?authSource=admin
@@ -27,7 +21,7 @@ spring.kafka.producer.value-serializer=org.springframework.kafka.support.seriali
 spring.kafka.producer.properties.spring.json.add.type.headers=false
 
 spring.kafka.consumer.bootstrap-servers=
-spring.kafka.consumer.group-id=
+spring.kafka.consumer.group-id=payment-group
 
 spring.kafka.consumer.key-deserializer=org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
 spring.kafka.consumer.value-deserializer=org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
@@ -39,3 +33,8 @@ spring.kafka.consumer.properties.spring.json.trusted.packages=*
 
 #Mercado pago
 e-sale.access.token=
+e-sale.payment.webhook.key=
+mercado-pago.payment.back.url.success=
+mercado-pago.payment.back.url.pending=
+mercado-pago.payment.back.url.failure=
+mercado-pago.payment.notification.url=

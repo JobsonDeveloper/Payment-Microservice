@@ -2,7 +2,7 @@ package br.com.payment.micro.controller;
 
 import br.com.payment.micro.domain.Payment;
 import br.com.payment.micro.dto.request.GetPaymentLinkDto;
-import br.com.payment.micro.dto.request.RegisterPaymentDto;
+import br.com.payment.micro.dto.request.PaymentWebhookMessageDto;
 import br.com.payment.micro.dto.response.PaymentCompletedDto;
 import br.com.payment.micro.dto.response.PaymentLinkGeneratedDto;
 import br.com.payment.micro.service.IPaymentService;
@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Payment", description = "Payment operations")
 public class PaymentController {
     private final IPaymentService iPaymentService;
-
     public PaymentController(IPaymentService iPaymentService) {
         this.iPaymentService = iPaymentService;
     }
@@ -196,9 +195,8 @@ public class PaymentController {
                     )
             }
     )
-    public ResponseEntity<PaymentCompletedDto> registerPayment(@Valid @RequestBody RegisterPaymentDto registerPaymentDto) {
-        String saleId = registerPaymentDto.saleId();
-        Payment payment = iPaymentService.paymentCompleted(saleId);
-        return ResponseEntity.status(HttpStatus.OK).body(new PaymentCompletedDto("Payment registered successfully!"));
+    public void registerPayment(@Valid @RequestBody PaymentWebhookMessageDto dto) {
+        String externalId = dto.data().id();
+        iPaymentService.paymentCompleted(externalId);
     }
 }
