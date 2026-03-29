@@ -2,7 +2,7 @@ package br.com.payment.micro.controller;
 
 import br.com.payment.micro.domain.Payment;
 import br.com.payment.micro.dto.request.GetPaymentLinkDto;
-import br.com.payment.micro.dto.request.RegisterPaymentDto;
+import br.com.payment.micro.dto.request.PaymentWebhookMessageDto;
 import br.com.payment.micro.dto.response.PaymentCompletedDto;
 import br.com.payment.micro.dto.response.PaymentLinkGeneratedDto;
 import br.com.payment.micro.service.IPaymentService;
@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Payment", description = "Payment operations")
 public class PaymentController {
     private final IPaymentService iPaymentService;
-
     public PaymentController(IPaymentService iPaymentService) {
         this.iPaymentService = iPaymentService;
     }
@@ -138,67 +137,8 @@ public class PaymentController {
     }
 
     @PostMapping("/api/payment/completed")
-    @Operation(
-            summary = "Mark payment as completed",
-            description = "Route to mark a payment as completed",
-            tags = {"Payment"},
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "Payment registered successfully!",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(implementation = PaymentCompletedDto.class)
-                            )
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Invalid data",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(
-                                            example = "{ \"error\": \"Validation failed\", \"errors\": \"[...]\" }"
-                                    )
-                            )
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Sale not found",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(
-                                            example = "{ \"status\": \"NOT_FOUND\", \"message\": \"Sale not found!\" }"
-                                    )
-                            )
-                    ),
-                    @ApiResponse(
-                            responseCode = "500",
-                            description = "It was not possible to get sale info!",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(
-                                            example = "{ \"status\": \"INTERNAL_SERVER_ERROR\", \"message\": \"It was not possible to get sale info!\" }"
-                                    )
-                            )
-                    ),
-                    @ApiResponse(
-                            responseCode = "502",
-                            description = "Services unavailable!",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    examples = {
-                                            @ExampleObject(
-                                                    name = "Service unavailable!",
-                                                    value = "{ \"status\": \"BAD_GATEWAY\", \"message\": \"Service 'Sale Microservice' is unavailable!\" }"
-                                            )
-                                    }
-                            )
-                    )
-            }
-    )
-    public ResponseEntity<PaymentCompletedDto> registerPayment(@Valid @RequestBody RegisterPaymentDto registerPaymentDto) {
-        String saleId = registerPaymentDto.saleId();
-        Payment payment = iPaymentService.paymentCompleted(saleId);
-        return ResponseEntity.status(HttpStatus.OK).body(new PaymentCompletedDto("Payment registered successfully!"));
+    public void registerPayment(@Valid @RequestBody PaymentWebhookMessageDto dto) {
+        String externalId = dto.data().id();
+        iPaymentService.paymentCompleted(externalId);
     }
 }

@@ -1,15 +1,18 @@
 package br.com.payment.micro.service.imp;
 
+import br.com.payment.micro.domain.MPPayment;
 import br.com.payment.micro.domain.Payment;
 import br.com.payment.micro.domain.Status;
 import br.com.payment.micro.dto.mercadoPago.MercadoPagoRequestPaymentLinkDto;
 import br.com.payment.micro.dto.mercadoPago.PayerDto;
 import br.com.payment.micro.dto.mercadoPago.PaymentConfigDto;
+import br.com.payment.micro.dto.request.SaleInfoDto;
 import br.com.payment.micro.dto.request.product.ProductIdentifiersDto;
 import br.com.payment.micro.dto.response.GetSaleInfoDto;
 import br.com.payment.micro.event.dto.PaymentEventDto;
 import br.com.payment.micro.event.producer.PaymentEventProducer;
 import br.com.payment.micro.exception.ErrorChangingPaymentStatusException;
+import br.com.payment.micro.exception.PaymentAlreadyMadeException;
 import br.com.payment.micro.exception.ServiceUnavailableException;
 import br.com.payment.micro.exception.sale.ErrorRetrievingSaleInfoException;
 import br.com.payment.micro.exception.sale.InconsistentValueException;
@@ -18,8 +21,6 @@ import br.com.payment.micro.repository.IPaymentRepository;
 import br.com.payment.micro.service.IPaymentProviderService;
 import br.com.payment.micro.service.IPaymentService;
 import br.com.payment.micro.service.ISalePayment;
-import com.mercadopago.exceptions.MPApiException;
-import com.mercadopago.exceptions.MPException;
 import feign.FeignException;
 import feign.RetryableException;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PaymentService implements IPaymentService {
@@ -57,6 +59,12 @@ public class PaymentService implements IPaymentService {
             String clientEmail
     ) {
         try {
+            Optional<Payment> payment = iPaymentRepository.findBySaleId(saleId);
+
+            if(payment.isPresent()) {
+                throw new PaymentAlreadyMadeException();
+            }
+
             GetSaleInfoDto saleData = iSalePayment.getSaleInfo(saleId);
 
             if (!value.equals(saleData.sale().totalValue())) {
@@ -99,32 +107,24 @@ public class PaymentService implements IPaymentService {
     }
 
     @Override
-    public Payment paymentCompleted(String saleId) {
+    public void paymentCompleted(String externalId) {
+        MPPayment newPayment = iPaymentProviderService.getPaymentDetails(externalId);
+
+        if (!newPayment.getExternalStatus().equals("approved")) {
+            return;
+        }
+
+        String saleId = newPayment.getExternalReference();
+        SaleInfoDto sale = null;
+
+        Optional<Payment> storedPayment = iPaymentRepository.findBySaleId(saleId);
+
+        if (storedPayment.isPresent()) {
+            return;
+        }
+
         try {
-            GetSaleInfoDto response = iSalePayment.getSaleInfo(saleId);
-            String clientId = response.sale().client().id();
-            Double value = response.sale().totalValue();
-
-            Payment newPayment = Payment.builder()
-                    .saleId(saleId)
-                    .clientId(clientId)
-                    .value(value)
-                    .status(Status.PAID)
-                    .created_at(LocalDateTime.now())
-                    .build();
-
-            Payment payment = iPaymentRepository.save(newPayment);
-
-            if (payment.getId() == null) {
-                throw new ErrorChangingPaymentStatusException();
-            }
-
-            paymentEventProducer.setPaymentEvent(new PaymentEventDto(
-                    saleId,
-                    Status.PAID
-            ));
-
-            return payment;
+            sale = iSalePayment.getSaleInfo(saleId).sale();
         } catch (RetryableException e) {
             throw new ServiceUnavailableException("Sale Microservice");
         } catch (FeignException.NotFound e) {
@@ -132,5 +132,25 @@ public class PaymentService implements IPaymentService {
         } catch (FeignException e) {
             throw new ErrorRetrievingSaleInfoException();
         }
+
+        String clientId = sale.client().id();
+        Payment payment = Payment.builder()
+                .saleId(saleId)
+                .clientId(clientId)
+                .status(Status.PAID)
+                .payment(newPayment)
+                .created_at(LocalDateTime.now())
+                .build();
+
+        Payment registeredPayment = iPaymentRepository.save(payment);
+
+        if (registeredPayment.getId() == null) {
+            throw new ErrorChangingPaymentStatusException();
+        }
+
+        paymentEventProducer.setPaymentEvent(new PaymentEventDto(
+                saleId,
+                Status.PAID
+        ));
     }
 }

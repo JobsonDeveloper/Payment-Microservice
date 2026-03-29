@@ -91,4 +91,10 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(defaultErrorResponse);
     }
+
+    @ExceptionHandler(PaymentAlreadyMadeException.class)
+    private ResponseEntity<DefaultErrorResponse> paymentAlreadyMadeHandler(PaymentAlreadyMadeException exception) {
+        DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.FORBIDDEN, exception.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(defaultErrorResponse);
+    }
 }
