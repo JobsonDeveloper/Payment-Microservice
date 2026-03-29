@@ -1,8 +1,9 @@
 package br.com.payment.micro.infra;
 
-import br.com.payment.micro.exception.ErrorGettingPaymentLinkException;
-import br.com.payment.micro.exception.ServiceUnavailableException;
+import br.com.payment.micro.exception.*;
+import br.com.payment.micro.exception.mercadoPago.MercadoPagoException;
 import br.com.payment.micro.exception.sale.ErrorRetrievingSaleInfoException;
+import br.com.payment.micro.exception.sale.InconsistentValueException;
 import br.com.payment.micro.exception.sale.SaleNotFoundException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -49,27 +50,51 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
-    @ExceptionHandler(ErrorGettingPaymentLinkException.class)
-    private ResponseEntity<DefaultErrorResponse> errorGettingPaymentLinkHandler(ErrorGettingPaymentLinkException exception) {
+    @ExceptionHandler({
+            ErrorGettingPaymentLinkException.class,
+            ServiceUnavailableException.class,
+            ErrorGettingPaymentLinkException.class
+    })
+    private ResponseEntity<DefaultErrorResponse> bedGatewayExceptionHandler(RuntimeException exception) {
         DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.BAD_GATEWAY, exception.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(defaultErrorResponse);
     }
 
-    @ExceptionHandler(ServiceUnavailableException.class)
-    private ResponseEntity<DefaultErrorResponse> serviceUnavailableHandler(ServiceUnavailableException exception) {
-        DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.BAD_GATEWAY, exception.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(defaultErrorResponse);
-    }
-
-    @ExceptionHandler(SaleNotFoundException.class)
-    private ResponseEntity<DefaultErrorResponse> saleNotFoundHandler(SaleNotFoundException exception) {
+    @ExceptionHandler({
+            SaleNotFoundException.class,
+            PaymentNotFoundException.class
+    })
+    private ResponseEntity<DefaultErrorResponse> notFoundExceptionHandler(RuntimeException exception) {
         DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.NOT_FOUND, exception.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(defaultErrorResponse);
     }
 
-    @ExceptionHandler(ErrorRetrievingSaleInfoException.class)
-    private ResponseEntity<DefaultErrorResponse> errorRetrievingSaleInfoHandler(ErrorRetrievingSaleInfoException exception) {
+    @ExceptionHandler({
+            ErrorRetrievingSaleInfoException.class,
+            ErrorChangingPaymentStatusException.class,
+            ErrorDeletingPaymentException.class,
+            ErrorCancelingPaymentException.class
+    })
+    private ResponseEntity<DefaultErrorResponse> internalServerErrorExceptionHandler(RuntimeException exception) {
         DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(defaultErrorResponse);
+    }
+
+    @ExceptionHandler(InconsistentValueException.class)
+    private ResponseEntity<DefaultErrorResponse> conflictExceptionHandler(InconsistentValueException exception) {
+        DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.CONFLICT, exception.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(defaultErrorResponse);
+    }
+
+    @ExceptionHandler(MercadoPagoException.class)
+    private ResponseEntity<DefaultErrorResponse> badRequestExceptionHandler(MercadoPagoException exception) {
+        DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(defaultErrorResponse);
+    }
+
+    @ExceptionHandler(PaymentAlreadyMadeException.class)
+    private ResponseEntity<DefaultErrorResponse> paymentAlreadyMadeHandler(PaymentAlreadyMadeException exception) {
+        DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.FORBIDDEN, exception.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(defaultErrorResponse);
     }
 }

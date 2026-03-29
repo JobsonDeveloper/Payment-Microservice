@@ -1,6 +1,9 @@
 package br.com.payment.micro.controller;
 
+import br.com.payment.micro.domain.Payment;
 import br.com.payment.micro.dto.request.GetPaymentLinkDto;
+import br.com.payment.micro.dto.request.PaymentWebhookMessageDto;
+import br.com.payment.micro.dto.response.PaymentCompletedDto;
 import br.com.payment.micro.dto.response.PaymentLinkGeneratedDto;
 import br.com.payment.micro.service.IPaymentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,7 +21,6 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Payment", description = "Payment operations")
 public class PaymentController {
     private final IPaymentService iPaymentService;
-
     public PaymentController(IPaymentService iPaymentService) {
         this.iPaymentService = iPaymentService;
     }
@@ -42,9 +44,16 @@ public class PaymentController {
                             description = "Invalid data",
                             content = @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(
-                                            example = "{ \"error\": \"Validation failed\", \"errors\": \"[...]\" }"
-                                    )
+                                    examples = {
+                                            @ExampleObject(
+                                                    name = "Invalid fields",
+                                                    value = "{ \"error\": \"Validation failed\", \"errors\": \"[...]\" }"
+                                            ),
+                                            @ExampleObject(
+                                                    name = "Data incompatible with linked database",
+                                                    value = "{ \"status\": \"BAD_REQUEST\", \"message\": \"The payment details was not provided correctly!\" }"
+                                            )
+                                    }
                             )
                     ),
                     @ApiResponse(
@@ -54,6 +63,16 @@ public class PaymentController {
                                     mediaType = "application/json",
                                     schema = @Schema(
                                             example = "{ \"status\": \"NOT_FOUND\", \"message\": \"Sale not found!\" }"
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "409",
+                            description = "Amount to be paid is incompatible",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(
+                                            example = "{ \"status\": \"CONFLICT\", \"message\": \"The amount to be paid is inconsistent!\" }"
                                     )
                             )
                     ),
@@ -69,7 +88,7 @@ public class PaymentController {
                     ),
                     @ApiResponse(
                             responseCode = "502",
-                            description = "",
+                            description = "Services unavailable!",
                             content = @Content(
                                     mediaType = "application/json",
                                     examples = {
@@ -80,6 +99,10 @@ public class PaymentController {
                                             @ExampleObject(
                                                     name = "Error when try to get payment link!",
                                                     value = "{ \"status\": \"BAD_GATEWAY\", \"message\": \"It was not possible to get payment link!\" }"
+                                            ),
+                                            @ExampleObject(
+                                                    name = "Communication error with the payment intermediary",
+                                                    value = "{ \"status\": \"BAD_GATEWAY\", \"message\": \"We were unable to generate the payment link!\" }"
                                             )
                                     }
                             )
@@ -92,13 +115,30 @@ public class PaymentController {
     ) {
         String saleId = getPaymentLinkDto.saleId();
         Double value = getPaymentLinkDto.value();
+        String cpf = getPaymentLinkDto.client().cpf();
+        String clientFirstName = getPaymentLinkDto.client().firstName();
+        String clientLastName = getPaymentLinkDto.client().lastName();
+        String clientEmail = getPaymentLinkDto.client().email();
 
-        String paymentLink = iPaymentService.getPaymentLink(value, saleId);
+        String paymentLink = iPaymentService.getPaymentLink(
+                value,
+                saleId,
+                cpf,
+                clientFirstName,
+                clientLastName,
+                clientEmail
+        );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new PaymentLinkGeneratedDto(
                 "Payment link returned successfully!",
                 saleId,
                 paymentLink
         ));
+    }
+
+    @PostMapping("/api/payment/completed")
+    public void registerPayment(@Valid @RequestBody PaymentWebhookMessageDto dto) {
+        String externalId = dto.data().id();
+        iPaymentService.paymentCompleted(externalId);
     }
 }
