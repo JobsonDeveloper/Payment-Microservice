@@ -137,64 +137,6 @@ public class PaymentController {
     }
 
     @PostMapping("/api/payment/completed")
-    @Operation(
-            summary = "Mark payment as completed",
-            description = "Route to mark a payment as completed",
-            tags = {"Payment"},
-            responses = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "Payment registered successfully!",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(implementation = PaymentCompletedDto.class)
-                            )
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Invalid data",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(
-                                            example = "{ \"error\": \"Validation failed\", \"errors\": \"[...]\" }"
-                                    )
-                            )
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Sale not found",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(
-                                            example = "{ \"status\": \"NOT_FOUND\", \"message\": \"Sale not found!\" }"
-                                    )
-                            )
-                    ),
-                    @ApiResponse(
-                            responseCode = "500",
-                            description = "It was not possible to get sale info!",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    schema = @Schema(
-                                            example = "{ \"status\": \"INTERNAL_SERVER_ERROR\", \"message\": \"It was not possible to get sale info!\" }"
-                                    )
-                            )
-                    ),
-                    @ApiResponse(
-                            responseCode = "502",
-                            description = "Services unavailable!",
-                            content = @Content(
-                                    mediaType = "application/json",
-                                    examples = {
-                                            @ExampleObject(
-                                                    name = "Service unavailable!",
-                                                    value = "{ \"status\": \"BAD_GATEWAY\", \"message\": \"Service 'Sale Microservice' is unavailable!\" }"
-                                            )
-                                    }
-                            )
-                    )
-            }
-    )
     public void registerPayment(@Valid @RequestBody PaymentWebhookMessageDto dto) {
         String externalId = dto.data().id();
         iPaymentService.paymentCompleted(externalId);
