@@ -85,6 +85,9 @@ public class PaymentService implements IPaymentService {
             );
 
             PaymentEventDto event = new PaymentEventDto(
+                    null,
+                    saleData.sale().client().id(),
+                    cpf,
                     saleId,
                     Status.PENDING_PAYMENT
             );
@@ -149,6 +152,9 @@ public class PaymentService implements IPaymentService {
         }
 
         paymentEventProducer.setPaymentEvent(new PaymentEventDto(
+                registeredPayment.getId(),
+                clientId,
+                newPayment.getPayerCpf(),
                 saleId,
                 Status.PAID
         ));
