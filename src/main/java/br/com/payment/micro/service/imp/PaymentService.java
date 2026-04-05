@@ -104,10 +104,6 @@ public class PaymentService implements IPaymentService {
         }
     }
 
-    @Override
-    public Payment makePayment(Payment payment) {
-        return null;
-    }
 
     @Override
     public void paymentCompleted(String externalId) {
