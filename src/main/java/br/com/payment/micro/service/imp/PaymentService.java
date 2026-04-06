@@ -13,6 +13,7 @@ import br.com.payment.micro.event.dto.PaymentEventDto;
 import br.com.payment.micro.event.producer.PaymentEventProducer;
 import br.com.payment.micro.exception.ErrorChangingPaymentStatusException;
 import br.com.payment.micro.exception.PaymentAlreadyMadeException;
+import br.com.payment.micro.exception.PaymentNotFoundException;
 import br.com.payment.micro.exception.ServiceUnavailableException;
 import br.com.payment.micro.exception.sale.ErrorRetrievingSaleInfoException;
 import br.com.payment.micro.exception.sale.InconsistentValueException;
@@ -154,5 +155,10 @@ public class PaymentService implements IPaymentService {
                 saleId,
                 Status.PAID
         ));
+    }
+
+    @Override
+    public Payment getPaymentInfoBySaleId(String saleId) {
+        return iPaymentRepository.findBySaleId(saleId).orElseThrow(PaymentNotFoundException::new);
     }
 }

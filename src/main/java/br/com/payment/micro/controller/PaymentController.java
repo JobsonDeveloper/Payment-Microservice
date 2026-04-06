@@ -4,6 +4,7 @@ import br.com.payment.micro.domain.Payment;
 import br.com.payment.micro.dto.request.GetPaymentLinkDto;
 import br.com.payment.micro.dto.request.PaymentWebhookMessageDto;
 import br.com.payment.micro.dto.response.PaymentCompletedDto;
+import br.com.payment.micro.dto.response.PaymentInfoDto;
 import br.com.payment.micro.dto.response.PaymentLinkGeneratedDto;
 import br.com.payment.micro.service.IPaymentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -140,5 +141,46 @@ public class PaymentController {
     public void registerPayment(@Valid @RequestBody PaymentWebhookMessageDto dto) {
         String externalId = dto.data().id();
         iPaymentService.paymentCompleted(externalId);
+    }
+
+    @GetMapping("/api/payment/{saleId}/info")
+    @Operation(
+            summary = "Get payment information by sale id",
+            description = "Return information about a payment by sale id",
+            tags = {"Payment"},
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Payment info returned successfully!",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = PaymentInfoDto.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Payment not found",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(
+                                            example = "{ \"status\": \"NOT_FOUND\", \"message\": \"Payment not found!\" }"
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "500",
+                            description = "It was not possible to payment info!",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(
+                                            example = "{ \"status\": \"INTERNAL_SERVER_ERROR\", \"message\": \"It was not possible to get payment info!\" }"
+                                    )
+                            )
+                    )
+            }
+    )
+    public ResponseEntity<PaymentInfoDto> getPaymentInfo(@PathVariable(name = "saleId", required = true) String saleId){
+        Payment payment = iPaymentService.getPaymentInfoBySaleId(saleId);
+        return ResponseEntity.status(HttpStatus.OK).body(new PaymentInfoDto("Payment info returned successfully!", payment));
     }
 }
