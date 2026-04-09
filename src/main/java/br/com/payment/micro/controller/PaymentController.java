@@ -8,6 +8,7 @@ import br.com.payment.micro.dto.response.PaymentInfoDto;
 import br.com.payment.micro.dto.response.PaymentLinkGeneratedDto;
 import br.com.payment.micro.service.IPaymentService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Payment", description = "Payment operations")
 public class PaymentController {
     private final IPaymentService iPaymentService;
+
     public PaymentController(IPaymentService iPaymentService) {
         this.iPaymentService = iPaymentService;
     }
@@ -179,7 +181,10 @@ public class PaymentController {
                     )
             }
     )
-    public ResponseEntity<PaymentInfoDto> getPaymentInfo(@PathVariable(name = "saleId", required = true) String saleId){
+    public ResponseEntity<PaymentInfoDto> getPaymentInfo(
+            @Parameter(description = "Id of the sale", required = true)
+            @PathVariable String saleId
+    ) {
         Payment payment = iPaymentService.getPaymentInfoBySaleId(saleId);
         return ResponseEntity.status(HttpStatus.OK).body(new PaymentInfoDto("Payment info returned successfully!", payment));
     }
