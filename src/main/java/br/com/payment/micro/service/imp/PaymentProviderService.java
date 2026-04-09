@@ -15,6 +15,7 @@ import com.mercadopago.client.preference.*;
 import com.mercadopago.exceptions.MPApiException;
 import com.mercadopago.exceptions.MPException;
 import com.mercadopago.resources.payment.Payment;
+import com.mercadopago.resources.payment.PaymentRefund;
 import com.mercadopago.resources.preference.Preference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,7 @@ import java.util.Map;
 @Service
 public class PaymentProviderService implements IPaymentProviderService {
     private static final Logger log = LoggerFactory.getLogger(PaymentProviderService.class);
+
     @Value("${application.currency.id}")
     private String currencyId;
 
@@ -143,6 +145,16 @@ public class PaymentProviderService implements IPaymentProviderService {
             throw new ErrorGettingExternalPaymentDetailsException("It was not possible to get payment data in external application!");
         } catch (MPException e) {
             throw new RuntimeException("Error when getting payment data: " + e);
+        }
+    }
+
+    @Override
+    public PaymentRefund refundPayment(Long paymentId) {
+        try {
+            PaymentClient client = new PaymentClient();
+            return client.refund(paymentId);
+        } catch (MPApiException | MPException e) {
+            throw new RuntimeException("Error refunding payment: " + e);
         }
     }
 }
