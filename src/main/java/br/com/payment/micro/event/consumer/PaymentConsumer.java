@@ -51,9 +51,6 @@ public class PaymentConsumer {
         if (!paymentClientId.equals(clientId)) throw new PermissionDeniedException();
 
         Long MPPaymentId = payment.getPayment().getExternalPaymentId();
-        PaymentRefund refund = iPaymentProviderService.refundPayment(MPPaymentId);
-        payment.getPayment().setExternalStatus(refund.getStatus());
-
         Canceled canceled = Canceled.builder()
                 .saleId(payment.getSaleId())
                 .clientId(paymentClientId)
@@ -65,5 +62,6 @@ public class PaymentConsumer {
 
         iCanceledRepository.save(canceled);
         iPaymentRepository.deleteById(payment.getId());
+        iPaymentProviderService.refundPayment(MPPaymentId);
     }
 }
