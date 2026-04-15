@@ -1,9 +1,6 @@
 package br.com.payment.micro.domain;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -13,6 +10,7 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@Setter
 public class MPPayment {
     private Long externalPaymentId; // id do Mercado Pago
     private String externalReference;

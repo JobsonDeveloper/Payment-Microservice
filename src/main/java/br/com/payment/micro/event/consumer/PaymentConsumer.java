@@ -10,6 +10,8 @@ import br.com.payment.micro.exception.PaymentNotFoundException;
 import br.com.payment.micro.exception.PermissionDeniedException;
 import br.com.payment.micro.repository.ICanceledRepository;
 import br.com.payment.micro.repository.IPaymentRepository;
+import br.com.payment.micro.service.IPaymentProviderService;
+import com.mercadopago.resources.payment.PaymentRefund;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -20,10 +22,16 @@ import java.util.Optional;
 public class PaymentConsumer {
     private final IPaymentRepository iPaymentRepository;
     private final ICanceledRepository iCanceledRepository;
+    private final IPaymentProviderService iPaymentProviderService;
 
-    public PaymentConsumer(IPaymentRepository iPaymentRepository, ICanceledRepository iCanceledRepository) {
+    public PaymentConsumer(
+            IPaymentRepository iPaymentRepository,
+            ICanceledRepository iCanceledRepository,
+            IPaymentProviderService iPaymentProviderService
+    ) {
         this.iPaymentRepository = iPaymentRepository;
         this.iCanceledRepository = iCanceledRepository;
+        this.iPaymentProviderService = iPaymentProviderService;
     }
 
     @KafkaListener(
@@ -35,42 +43,25 @@ public class PaymentConsumer {
         String clientId = cancelPaymentEventDto.clientId();
         Status status = cancelPaymentEventDto.status();
 
-        if (status.equals(Status.CANCELED)) {
-            Optional<Payment> registeredPayment = iPaymentRepository.findBySaleId(saleId);
+        if (!status.equals(Status.CANCELED)) return;
 
-            if (!registeredPayment.isPresent()) {
-                throw new PaymentNotFoundException();
-            }
-            Payment payment = registeredPayment.get();
-            String paymentClientId = payment.getClientId();
+        Payment payment = iPaymentRepository.findBySaleId(saleId).orElseThrow(PaymentNotFoundException::new);
+        String paymentClientId = payment.getClientId();
 
-            if (!paymentClientId.equals(clientId)) {
-                throw new PermissionDeniedException();
-            }
+        if (!paymentClientId.equals(clientId)) throw new PermissionDeniedException();
 
-            if (payment.getStatus().equals(Status.PAID)) {
-                Canceled canceled = Canceled.builder()
-                        .saleId(payment.getSaleId())
-                        .clientId(paymentClientId)
-                        .payment(payment.getPayment())
-                        .status(Status.CANCELED)
-                        .created_at(payment.getCreated_at())
-                        .updated_at(LocalDateTime.now())
-                        .build();
+        Long MPPaymentId = payment.getPayment().getExternalPaymentId();
+        Canceled canceled = Canceled.builder()
+                .saleId(payment.getSaleId())
+                .clientId(paymentClientId)
+                .payment(payment.getPayment())
+                .status(Status.CANCELED)
+                .created_at(payment.getCreated_at())
+                .updated_at(LocalDateTime.now())
+                .build();
 
-                Canceled canceledPayment = iCanceledRepository.save(canceled);
-
-                if(canceledPayment.getId() == null) {
-                    throw new ErrorCancelingPaymentException();
-                }
-            }
-
-            iPaymentRepository.deleteById(payment.getId());
-            Optional<Payment> paymentDeleted = iPaymentRepository.findBySaleId(saleId);
-
-            if (paymentDeleted.isPresent()) {
-                throw new ErrorDeletingPaymentException();
-            }
-        }
+        iCanceledRepository.save(canceled);
+        iPaymentRepository.deleteById(payment.getId());
+        iPaymentProviderService.refundPayment(MPPaymentId);
     }
 }
