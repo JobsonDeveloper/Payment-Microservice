@@ -4,6 +4,7 @@ import br.com.payment.micro.domain.MPPayment;
 import br.com.payment.micro.dto.mercadoPago.MercadoPagoRequestPaymentLinkDto;
 import br.com.payment.micro.exception.mercadoPago.ErrorGettingExternalPaymentDetailsException;
 import br.com.payment.micro.exception.mercadoPago.ErrorGettingPaymentLinkException;
+import br.com.payment.micro.exception.mercadoPago.MPRefundPaymentErrorException;
 import br.com.payment.micro.exception.mercadoPago.MercadoPagoException;
 import br.com.payment.micro.service.IPaymentProviderService;
 import br.com.payment.micro.exception.JsonProcessingErrorException;
@@ -144,17 +145,17 @@ public class PaymentProviderService implements IPaymentProviderService {
         } catch (MPApiException e) {
             throw new ErrorGettingExternalPaymentDetailsException("It was not possible to get payment data in external application!");
         } catch (MPException e) {
-            throw new RuntimeException("Error when getting payment data: " + e);
+            throw new ErrorGettingExternalPaymentDetailsException("Error when getting payment data!");
         }
     }
 
     @Override
-    public PaymentRefund refundPayment(Long paymentId) {
+    public void refundPayment(Long paymentId) {
         try {
             PaymentClient client = new PaymentClient();
-            return client.refund(paymentId);
+            client.refund(paymentId);
         } catch (MPApiException | MPException e) {
-            throw new RuntimeException("Error refunding payment: " + e);
+            throw new MPRefundPaymentErrorException();
         }
     }
 }

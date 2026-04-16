@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface IPaymentRepository extends MongoRepository<Payment, String> {
     public Optional<Payment> findBySaleId(String saleId);
+    public boolean existsBySaleId(String saleId);
 }
