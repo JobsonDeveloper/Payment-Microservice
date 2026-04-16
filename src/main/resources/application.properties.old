@@ -9,7 +9,7 @@ client.micro.url=
 #Database
 MONGO_HOST=
 MONGO_PORT=
-MONGO_DB=paymentdb
+MONGO_DB=
 MONGO_USER=
 MONGO_PASS=
 spring.data.mongodb.uri=mongodb://${MONGO_USER}:${MONGO_PASS}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}?authSource=admin
