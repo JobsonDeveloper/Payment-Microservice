@@ -3,7 +3,6 @@ package br.com.payment.micro.controller;
 import br.com.payment.micro.domain.Payment;
 import br.com.payment.micro.dto.request.GetPaymentLinkDto;
 import br.com.payment.micro.dto.request.PaymentWebhookMessageDto;
-import br.com.payment.micro.dto.response.PaymentCompletedDto;
 import br.com.payment.micro.dto.response.PaymentInfoDto;
 import br.com.payment.micro.dto.response.PaymentLinkGeneratedDto;
 import br.com.payment.micro.service.IPaymentService;

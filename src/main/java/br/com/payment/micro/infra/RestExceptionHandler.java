@@ -1,10 +1,15 @@
 package br.com.payment.micro.infra;
 
 import br.com.payment.micro.exception.*;
+import br.com.payment.micro.exception.mercadoPago.ErrorGettingExternalPaymentDetailsException;
+import br.com.payment.micro.exception.mercadoPago.MPRefundPaymentErrorException;
 import br.com.payment.micro.exception.mercadoPago.MercadoPagoException;
 import br.com.payment.micro.exception.sale.ErrorRetrievingSaleInfoException;
 import br.com.payment.micro.exception.sale.InconsistentValueException;
 import br.com.payment.micro.exception.sale.SaleNotFoundException;
+import com.mongodb.DuplicateKeyException;
+import com.mongodb.MongoException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -50,51 +55,93 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
-    @ExceptionHandler({
-            ErrorGettingPaymentLinkException.class,
-            ServiceUnavailableException.class,
-            ErrorGettingPaymentLinkException.class
-    })
-    private ResponseEntity<DefaultErrorResponse> bedGatewayExceptionHandler(RuntimeException exception) {
-        DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.BAD_GATEWAY, exception.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(defaultErrorResponse);
+    private ResponseEntity<DefaultErrorResponse> responseConstructor(HttpStatus status, String message) {
+        return ResponseEntity.status(status)
+                .body(new DefaultErrorResponse(status, message));
     }
 
     @ExceptionHandler({
             SaleNotFoundException.class,
             PaymentNotFoundException.class
     })
-    private ResponseEntity<DefaultErrorResponse> notFoundExceptionHandler(RuntimeException exception) {
-        DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.NOT_FOUND, exception.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(defaultErrorResponse);
+    private ResponseEntity<DefaultErrorResponse> recordNotFoundHandler(RuntimeException exception) {
+        return this.responseConstructor(
+                HttpStatus.NOT_FOUND,
+                exception.getMessage()
+        );
     }
 
     @ExceptionHandler({
             ErrorRetrievingSaleInfoException.class,
-            ErrorChangingPaymentStatusException.class,
-            ErrorDeletingPaymentException.class,
-            ErrorCancelingPaymentException.class
+            ServiceUnavailableException.class,
+            MPRefundPaymentErrorException.class,
+            ErrorGettingExternalPaymentDetailsException.class
     })
-    private ResponseEntity<DefaultErrorResponse> internalServerErrorExceptionHandler(RuntimeException exception) {
-        DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(defaultErrorResponse);
+    private ResponseEntity<DefaultErrorResponse> gatewayErrorHandler(RuntimeException exception) {
+        return this.responseConstructor(
+                HttpStatus.BAD_GATEWAY,
+                exception.getMessage()
+        );
     }
 
     @ExceptionHandler(InconsistentValueException.class)
-    private ResponseEntity<DefaultErrorResponse> conflictExceptionHandler(InconsistentValueException exception) {
-        DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.CONFLICT, exception.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(defaultErrorResponse);
+    private ResponseEntity<DefaultErrorResponse> inconsistencyErrorHandler(RuntimeException exception) {
+        return this.responseConstructor(
+                HttpStatus.CONFLICT,
+                exception.getMessage()
+        );
     }
 
     @ExceptionHandler(MercadoPagoException.class)
-    private ResponseEntity<DefaultErrorResponse> badRequestExceptionHandler(MercadoPagoException exception) {
-        DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(defaultErrorResponse);
+    private ResponseEntity<DefaultErrorResponse> mercadoPagoErrorHandler(RuntimeException exception) {
+        return this.responseConstructor(
+                HttpStatus.BAD_REQUEST,
+                exception.getMessage()
+        );
     }
 
     @ExceptionHandler(PaymentAlreadyMadeException.class)
-    private ResponseEntity<DefaultErrorResponse> paymentAlreadyMadeHandler(PaymentAlreadyMadeException exception) {
-        DefaultErrorResponse defaultErrorResponse = new DefaultErrorResponse(HttpStatus.FORBIDDEN, exception.getMessage());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(defaultErrorResponse);
+    private ResponseEntity<DefaultErrorResponse> permissionDeniedHandler(RuntimeException exception) {
+        return this.responseConstructor(
+                HttpStatus.FORBIDDEN,
+                exception.getMessage()
+        );
+    }
+
+    @ExceptionHandler(JsonProcessingErrorException.class)
+    private ResponseEntity<DefaultErrorResponse> processingDataErrorHandler(RuntimeException exception) {
+        return this.responseConstructor(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                exception.getMessage()
+        );
+    }
+
+    //    ----  System errors  ----
+
+    @ExceptionHandler(DuplicateKeyException.class)
+    private ResponseEntity<DefaultErrorResponse> systemDuplicityOfDataHandler(RuntimeException exception) {
+        return this.responseConstructor(
+                HttpStatus.CONFLICT,
+                "This record has already been registered!"
+        );
+    }
+
+    @ExceptionHandler({
+            MongoException.class,
+            DataAccessException.class
+    })
+    private ResponseEntity<DefaultErrorResponse> systemDatabaseAccessErrorHandler(RuntimeException exception) {
+        return this.responseConstructor(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Error connecting to the database!"
+        );
+    }
+
+    @ExceptionHandler(Exception.class)
+    private ResponseEntity<DefaultErrorResponse> unmappedErrorsHandler(Exception exception) {
+        return this.responseConstructor(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Unexpected internal error!"
+        );
     }
 }

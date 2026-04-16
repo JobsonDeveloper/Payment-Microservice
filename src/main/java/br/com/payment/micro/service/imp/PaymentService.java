@@ -11,7 +11,6 @@ import br.com.payment.micro.dto.request.product.ProductIdentifiersDto;
 import br.com.payment.micro.dto.response.GetSaleInfoDto;
 import br.com.payment.micro.event.dto.PaymentEventDto;
 import br.com.payment.micro.event.producer.PaymentEventProducer;
-import br.com.payment.micro.exception.ErrorChangingPaymentStatusException;
 import br.com.payment.micro.exception.PaymentAlreadyMadeException;
 import br.com.payment.micro.exception.PaymentNotFoundException;
 import br.com.payment.micro.exception.ServiceUnavailableException;
@@ -29,7 +28,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class PaymentService implements IPaymentService {
@@ -59,43 +57,13 @@ public class PaymentService implements IPaymentService {
             String clientLastName,
             String clientEmail
     ) {
+        boolean payment = iPaymentRepository.existsBySaleId(saleId);
+        if (payment) throw new PaymentAlreadyMadeException();
+
+        GetSaleInfoDto saleData = null;
+
         try {
-            Optional<Payment> payment = iPaymentRepository.findBySaleId(saleId);
-
-            if(payment.isPresent()) {
-                throw new PaymentAlreadyMadeException();
-            }
-
-            GetSaleInfoDto saleData = iSalePayment.getSaleInfo(saleId);
-
-            if (!value.equals(saleData.sale().totalValue())) {
-                throw new InconsistentValueException();
-            }
-
-            BigDecimal price = new BigDecimal(value);
-            List<ProductIdentifiersDto> items = saleData.sale().items();
-            PayerDto payer = new PayerDto(clientFirstName, clientLastName, cpf, clientEmail);
-            PaymentConfigDto paymentConfig = new PaymentConfigDto(12);
-            String link = iPaymentProviderService.createPayment(
-                    new MercadoPagoRequestPaymentLinkDto(
-                            saleId,
-                            items,
-                            payer,
-                            paymentConfig
-                    )
-            );
-
-            PaymentEventDto event = new PaymentEventDto(
-                    null,
-                    saleData.sale().client().id(),
-                    cpf,
-                    saleId,
-                    Status.PENDING_PAYMENT
-            );
-
-            paymentEventProducer.setPaymentEvent(event);
-
-            return link;
+            saleData = iSalePayment.getSaleInfo(saleId);
         } catch (RetryableException e) {
             throw new ServiceUnavailableException("Sale Microservice or Client Microservice");
         } catch (FeignException.NotFound e) {
@@ -103,25 +71,47 @@ public class PaymentService implements IPaymentService {
         } catch (FeignException e) {
             throw new ErrorRetrievingSaleInfoException();
         }
+
+        if (!value.equals(saleData.sale().totalValue())) throw new InconsistentValueException();
+
+        BigDecimal price = new BigDecimal(value);
+        List<ProductIdentifiersDto> items = saleData.sale().items();
+        PayerDto payer = new PayerDto(clientFirstName, clientLastName, cpf, clientEmail);
+        PaymentConfigDto paymentConfig = new PaymentConfigDto(12);
+
+        String link = iPaymentProviderService.createPayment(
+                new MercadoPagoRequestPaymentLinkDto(
+                        saleId,
+                        items,
+                        payer,
+                        paymentConfig
+                )
+        );
+
+        PaymentEventDto event = new PaymentEventDto(
+                null,
+                saleData.sale().client().id(),
+                cpf,
+                saleId,
+                Status.PENDING_PAYMENT
+        );
+
+        paymentEventProducer.setPaymentEvent(event);
+
+        return link;
     }
 
 
     @Override
     public void paymentCompleted(String externalId) {
         MPPayment newPayment = iPaymentProviderService.getPaymentDetails(externalId);
-
-        if (!newPayment.getExternalStatus().equals("approved")) {
-            return;
-        }
+        if (!newPayment.getExternalStatus().equals("approved")) return;
 
         String saleId = newPayment.getExternalReference();
         SaleInfoDto sale = null;
 
-        Optional<Payment> storedPayment = iPaymentRepository.findBySaleId(saleId);
-
-        if (storedPayment.isPresent()) {
-            return;
-        }
+        boolean storedPayment = iPaymentRepository.existsBySaleId(saleId);
+        if (storedPayment) return;
 
         try {
             sale = iSalePayment.getSaleInfo(saleId).sale();
@@ -143,10 +133,6 @@ public class PaymentService implements IPaymentService {
                 .build();
 
         Payment registeredPayment = iPaymentRepository.save(payment);
-
-        if (registeredPayment.getId() == null) {
-            throw new ErrorChangingPaymentStatusException();
-        }
 
         paymentEventProducer.setPaymentEvent(new PaymentEventDto(
                 registeredPayment.getId(),

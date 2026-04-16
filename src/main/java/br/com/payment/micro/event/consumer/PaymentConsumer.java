@@ -4,19 +4,15 @@ import br.com.payment.micro.domain.Canceled;
 import br.com.payment.micro.domain.Payment;
 import br.com.payment.micro.domain.Status;
 import br.com.payment.micro.event.dto.CancelPaymentEventDto;
-import br.com.payment.micro.exception.ErrorCancelingPaymentException;
-import br.com.payment.micro.exception.ErrorDeletingPaymentException;
 import br.com.payment.micro.exception.PaymentNotFoundException;
 import br.com.payment.micro.exception.PermissionDeniedException;
 import br.com.payment.micro.repository.ICanceledRepository;
 import br.com.payment.micro.repository.IPaymentRepository;
 import br.com.payment.micro.service.IPaymentProviderService;
-import com.mercadopago.resources.payment.PaymentRefund;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 public class PaymentConsumer {
@@ -36,7 +32,7 @@ public class PaymentConsumer {
 
     @KafkaListener(
             topics = "sale",
-            groupId = "payment-group"
+            groupId = "${spring.kafka.consumer.group-id}"
     )
     public void cancelPayment(CancelPaymentEventDto cancelPaymentEventDto) {
         String saleId = cancelPaymentEventDto.id();
