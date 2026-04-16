@@ -1,6 +1,7 @@
 package br.com.payment.micro.domain;
 
 import lombok.*;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -12,8 +13,12 @@ import java.time.Instant;
 @Getter
 @Setter
 public class MPPayment {
+    @Indexed(unique = true)
     private Long externalPaymentId; // id do Mercado Pago
+
+    @Indexed(unique = true)
     private String externalReference;
+
     private BigDecimal transactionAmount;
     private BigDecimal netAmount;
     private String externalStatus;        // approved, pending, rejected
