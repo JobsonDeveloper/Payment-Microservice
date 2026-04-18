@@ -2,14 +2,14 @@ package br.com.payment.micro.controller;
 
 import br.com.payment.micro.domain.Payment;
 import br.com.payment.micro.dto.request.GetPaymentLinkDto;
-import br.com.payment.micro.dto.request.PaymentWebhookMessageDto;
 import br.com.payment.micro.dto.response.PaymentInfoDto;
 import br.com.payment.micro.dto.response.PaymentLinkGeneratedDto;
+import br.com.payment.micro.dto.swagger.DefaultErrorResponseDto;
+import br.com.payment.micro.dto.swagger.validation.fields.FieldsErrorDto;
 import br.com.payment.micro.service.IPaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,13 +29,13 @@ public class PaymentController {
 
     @PostMapping("/api/payment/link")
     @Operation(
-            summary = "Create a payment link",
+            summary = "Get payment link",
             description = "Create a link to make a payment",
             tags = {"Payment"},
             responses = {
                     @ApiResponse(
                             responseCode = "201",
-                            description = "Payment link returned successfully!",
+                            description = "Payment link returned successfully",
                             content = @Content(
                                     mediaType = "application/json",
                                     schema = @Schema(implementation = PaymentLinkGeneratedDto.class)
@@ -46,16 +46,7 @@ public class PaymentController {
                             description = "Invalid data",
                             content = @Content(
                                     mediaType = "application/json",
-                                    examples = {
-                                            @ExampleObject(
-                                                    name = "Invalid fields",
-                                                    value = "{ \"error\": \"Validation failed\", \"errors\": \"[...]\" }"
-                                            ),
-                                            @ExampleObject(
-                                                    name = "Data incompatible with linked database",
-                                                    value = "{ \"status\": \"BAD_REQUEST\", \"message\": \"The payment details was not provided correctly!\" }"
-                                            )
-                                    }
+                                    schema = @Schema(implementation = FieldsErrorDto.class)
                             )
                     ),
                     @ApiResponse(
@@ -63,9 +54,7 @@ public class PaymentController {
                             description = "Sale not found",
                             content = @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(
-                                            example = "{ \"status\": \"NOT_FOUND\", \"message\": \"Sale not found!\" }"
-                                    )
+                                    schema = @Schema(implementation = DefaultErrorResponseDto.class)
                             )
                     ),
                     @ApiResponse(
@@ -73,40 +62,31 @@ public class PaymentController {
                             description = "Amount to be paid is incompatible",
                             content = @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(
-                                            example = "{ \"status\": \"CONFLICT\", \"message\": \"The amount to be paid is inconsistent!\" }"
-                                    )
+                                    schema = @Schema(implementation = DefaultErrorResponseDto.class)
                             )
                     ),
                     @ApiResponse(
                             responseCode = "500",
-                            description = "It was not possible to get sale info!",
+                            description = "Internal Server Error",
                             content = @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(
-                                            example = "{ \"status\": \"INTERNAL_SERVER_ERROR\", \"message\": \"It was not possible to get sale info!\" }"
-                                    )
+                                    schema = @Schema(implementation = DefaultErrorResponseDto.class)
                             )
                     ),
                     @ApiResponse(
                             responseCode = "502",
-                            description = "Services unavailable!",
+                            description = "Gateway Error",
                             content = @Content(
                                     mediaType = "application/json",
-                                    examples = {
-                                            @ExampleObject(
-                                                    name = "Service unavailable!",
-                                                    value = "{ \"status\": \"BAD_GATEWAY\", \"message\": \"Service 'Sale Microservice' is unavailable!\" }"
-                                            ),
-                                            @ExampleObject(
-                                                    name = "Error when try to get payment link!",
-                                                    value = "{ \"status\": \"BAD_GATEWAY\", \"message\": \"It was not possible to get payment link!\" }"
-                                            ),
-                                            @ExampleObject(
-                                                    name = "Communication error with the payment intermediary",
-                                                    value = "{ \"status\": \"BAD_GATEWAY\", \"message\": \"We were unable to generate the payment link!\" }"
-                                            )
-                                    }
+                                    schema = @Schema(implementation = DefaultErrorResponseDto.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "503",
+                            description = "Service Unavailable",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = DefaultErrorResponseDto.class)
                             )
                     )
             }
@@ -138,21 +118,15 @@ public class PaymentController {
         ));
     }
 
-    @PostMapping("/api/payment/completed")
-    public void registerPayment(@Valid @RequestBody PaymentWebhookMessageDto dto) {
-        String externalId = dto.data().id();
-        iPaymentService.paymentCompleted(externalId);
-    }
-
     @GetMapping("/api/payment/{saleId}/info")
     @Operation(
-            summary = "Get payment information by sale id",
-            description = "Return information about a payment by sale id",
+            summary = "Get payment information",
+            description = "Return information of a payment by sale id",
             tags = {"Payment"},
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Payment info returned successfully!",
+                            description = "Payment information returned successfully",
                             content = @Content(
                                     mediaType = "application/json",
                                     schema = @Schema(implementation = PaymentInfoDto.class)
@@ -163,19 +137,23 @@ public class PaymentController {
                             description = "Payment not found",
                             content = @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(
-                                            example = "{ \"status\": \"NOT_FOUND\", \"message\": \"Payment not found!\" }"
-                                    )
+                                    schema = @Schema(implementation = DefaultErrorResponseDto.class)
                             )
                     ),
                     @ApiResponse(
                             responseCode = "500",
-                            description = "It was not possible to payment info!",
+                            description = "Internal Server Error",
                             content = @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(
-                                            example = "{ \"status\": \"INTERNAL_SERVER_ERROR\", \"message\": \"It was not possible to get payment info!\" }"
-                                    )
+                                    schema = @Schema(implementation = DefaultErrorResponseDto.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "503",
+                            description = "Service Unavailable",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = DefaultErrorResponseDto.class)
                             )
                     )
             }
