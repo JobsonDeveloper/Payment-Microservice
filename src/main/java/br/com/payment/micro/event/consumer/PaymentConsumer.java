@@ -36,20 +36,20 @@ public class PaymentConsumer {
     )
     public void cancelPayment(CancelPaymentEventDto cancelPaymentEventDto) {
         String saleId = cancelPaymentEventDto.id();
-        String clientId = cancelPaymentEventDto.clientId();
+        String userId = cancelPaymentEventDto.userId();
         Status status = cancelPaymentEventDto.status();
 
         if (!status.equals(Status.CANCELED)) return;
 
         Payment payment = iPaymentRepository.findBySaleId(saleId).orElseThrow(PaymentNotFoundException::new);
-        String paymentClientId = payment.getClientId();
+        String paymentUserId = payment.getUserId();
 
-        if (!paymentClientId.equals(clientId)) throw new PermissionDeniedException();
+        if (!paymentUserId.equals(userId)) throw new PermissionDeniedException();
 
         Long MPPaymentId = payment.getPayment().getExternalPaymentId();
         Canceled canceled = Canceled.builder()
                 .saleId(payment.getSaleId())
-                .clientId(paymentClientId)
+                .userId(paymentUserId)
                 .payment(payment.getPayment())
                 .status(Status.CANCELED)
                 .created_at(payment.getCreated_at())

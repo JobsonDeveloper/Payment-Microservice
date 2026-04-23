@@ -6,8 +6,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = false)
 public record PaymentEventDto(
         String paymentId,
-        String clientId,
-        String clientCpf,
+        String userId,
+        String userCpf,
         String saleId,
         Status status
 ) {
