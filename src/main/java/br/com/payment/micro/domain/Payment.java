@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 public class Payment {
     @Id
     private String id;
-    private String clientId;
+    private String userId;
     private Status status;
 
     @Indexed(unique = true)

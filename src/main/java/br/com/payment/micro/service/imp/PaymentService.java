@@ -53,9 +53,9 @@ public class PaymentService implements IPaymentService {
             Double value,
             String saleId,
             String cpf,
-            String clientFirstName,
-            String clientLastName,
-            String clientEmail
+            String userFirstName,
+            String userLastName,
+            String userEmail
     ) {
         boolean payment = iPaymentRepository.existsBySaleId(saleId);
         if (payment) throw new PaymentAlreadyMadeException();
@@ -65,7 +65,7 @@ public class PaymentService implements IPaymentService {
         try {
             saleData = iSalePayment.getSaleInfo(saleId);
         } catch (RetryableException e) {
-            throw new ServiceUnavailableException("Sale Microservice or Client Microservice");
+            throw new ServiceUnavailableException("Sale Microservice or User Microservice");
         } catch (FeignException.NotFound e) {
             throw new SaleNotFoundException();
         } catch (FeignException e) {
@@ -76,7 +76,7 @@ public class PaymentService implements IPaymentService {
 
         BigDecimal price = new BigDecimal(value);
         List<ProductIdentifiersDto> items = saleData.sale().items();
-        PayerDto payer = new PayerDto(clientFirstName, clientLastName, cpf, clientEmail);
+        PayerDto payer = new PayerDto(userFirstName, userLastName, cpf, userEmail);
         PaymentConfigDto paymentConfig = new PaymentConfigDto(12);
 
         String link = iPaymentProviderService.createPayment(
@@ -90,7 +90,7 @@ public class PaymentService implements IPaymentService {
 
         PaymentEventDto event = new PaymentEventDto(
                 null,
-                saleData.sale().client().id(),
+                saleData.sale().user().id(),
                 cpf,
                 saleId,
                 Status.PENDING_PAYMENT
@@ -123,10 +123,10 @@ public class PaymentService implements IPaymentService {
             throw new ErrorRetrievingSaleInfoException();
         }
 
-        String clientId = sale.client().id();
+        String userId = sale.user().id();
         Payment payment = Payment.builder()
                 .saleId(saleId)
-                .clientId(clientId)
+                .userId(userId)
                 .status(Status.PAID)
                 .payment(newPayment)
                 .created_at(LocalDateTime.now())
@@ -136,7 +136,7 @@ public class PaymentService implements IPaymentService {
 
         paymentEventProducer.setPaymentEvent(new PaymentEventDto(
                 registeredPayment.getId(),
-                clientId,
+                userId,
                 newPayment.getPayerCpf(),
                 saleId,
                 Status.PAID

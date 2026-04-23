@@ -97,18 +97,18 @@ public class PaymentController {
     ) {
         String saleId = getPaymentLinkDto.saleId();
         Double value = getPaymentLinkDto.value();
-        String cpf = getPaymentLinkDto.client().cpf();
-        String clientFirstName = getPaymentLinkDto.client().firstName();
-        String clientLastName = getPaymentLinkDto.client().lastName();
-        String clientEmail = getPaymentLinkDto.client().email();
+        String cpf = getPaymentLinkDto.user().cpf();
+        String userFirstName = getPaymentLinkDto.user().firstName();
+        String userLastName = getPaymentLinkDto.user().lastName();
+        String userEmail = getPaymentLinkDto.user().email();
 
         String paymentLink = iPaymentService.getPaymentLink(
                 value,
                 saleId,
                 cpf,
-                clientFirstName,
-                clientLastName,
-                clientEmail
+                userFirstName,
+                userLastName,
+                userEmail
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new PaymentLinkGeneratedDto(

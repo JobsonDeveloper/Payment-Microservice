@@ -4,7 +4,7 @@ spring.application.zone=America/Recife
 application.currency.id=BRL
 
 sale.micro.url=
-client.micro.url=
+user.micro.url=
 
 #Database
 MONGO_HOST=
